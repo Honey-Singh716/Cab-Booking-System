@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cab Booking - Real Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <div class="bar">
+        <div class="left">
+            <strong>Cab Booking System</strong>
+            <span class="muted">(Click map to set pickup; optional drop)</span>
+        </div>
+        <div class="right">
+            <label> Cabs: <input id="cabCount" type="number" min="1" max="30" value="8" /></label>
+            <label> Radius(m): <input id="searchRadius" type="number" min="100" max="5000" value="1200" /></label>
+            <label><input id="enableDrop" type="checkbox" /> Enable drop</label>
+            <button id="resetBtn">Reset</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div id="map"></div>
+        <aside class="sidebar">
+            <div class="section">
+                <h3>Available Cabs</h3>
+                <div id="availableCabs" class="cab-info">Click on map to find cabs</div>
+            </div>
+            <div class="section">
+                <h3>Trip Details</h3>
+                <div class="trip-details">
+                    <div><span>Status:</span> <span id="status">Idle</span></div>
+                    <div><span>Distance:</span> <span id="distance">-</span></div>
+                    <div><span>Fare:</span> <span id="fare">-</span></div>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
