@@ -2,42 +2,58 @@
 #define REAL_MAP_LOGIC_H
 
 #include <vector>
-#include <string>
+#include "cab_management.h"
 
-struct Location {
-    double latitude;
-    double longitude;
+
+class CabManager;
+
+struct Route {
+    std::vector<Location> waypoints;
+    double totalDistance;  
+    double estimatedDuration; 
+    double estimatedFare; 
+    bool isValid;
     
-    Location(double lat = 0.0, double lng = 0.0) 
-        : latitude(lat), longitude(lng) {}
+    Route();
 };
 
-struct Cab {
-    int id;
-    Location position;
-    bool available;
-    
-    Cab(int id, double lat, double lng) //cab id and location details 
-        : id(id), position(lat, lng), available(true) {}
-};
-
-class MapManager {
-public:
-    // Initializing with default location (by default New Delhi)
-    MapManager();
-    
-    // Finding nearest available cab to a location
-    int findNearestCab(const Location& location);
-    
-    // Calculating route between two points
-    std::vector<Location> calculateRoute(const Location& from, const Location& to);
-    
-    // Updating cab positions 
-    void updateCabPositions();
-    
+class RealMapCabSystem {
 private:
-    std::vector<Cab> cabs;
-    void initializeCabs(int count, const Location& center, double radius);
+    CabManager cabManager;
+    
+    struct TripPhase {
+        enum Type { IDLE, CAB_TO_PICKUP, PICKUP_TO_DROP, COMPLETED };
+        Type type;
+        Location pickup;
+        Location drop;
+        int assignedCabId;
+        Route currentRoute;
+        
+        TripPhase();
+    } currentTrip;
+    
+    double averageSpeed; 
+    
+   
+    double calculateDistance(Location a, Location b);
+    int findNearestCab(Location pickup);
+    double calculateFare(double distanceKm, double durationMinutes);
+    Route estimateRoute(Location from, Location to);
+    
+public:
+    RealMapCabSystem();
+    
+    // Core functionality
+    bool addCab(int id, Location position, bool available = true);
+    bool startTrip(Location pickup);
+    bool addDropLocation(Location drop);
+    void completeTrip();
+    
+   
+    int getAvailableCabsCount() const;
+    
+    
+    void demo();
 };
 
-#endif // real_map_logic.h
+#endif // REAL_MAP_LOGIC_H
