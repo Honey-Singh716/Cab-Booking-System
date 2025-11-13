@@ -139,4 +139,72 @@
         cabMarkers = cabCoords.map(c => L.marker(c, { icon: iconHtml('marker-cab') }).addTo(map));
     }
 
+
+    async function findNearestCabAndRoute(pick){
+        if (cabCoords.length === 0) return null;
+        // Build table with sources = cabs, destinations = pickup
+        const coords = [...cabCoords, pick];
+        const table = await osrmTable(coords);
+        // distances is NxN; we care rows 0..cabs-1 to last column (pickup)
+        let best = { idx: -1, dist: Infinity };
+        const pickupIdx = coords.length - 1;
+        for (let i=0;i<cabCoords.length;i++){
+            const d = table.distances[i][pickupIdx];
+            if (Number.isFinite(d) && d < best.dist) best = { idx: i, dist: d };
+        }
+        if (best.idx === -1) return null;
+        const cab = cabCoords[best.idx];
+        const r = await osrmRoute(cab, pick);
+        return { cabIndex: best.idx, cab, distance: best.dist, duration: r.routes[0].duration, route: r.routes[0] };
+    }
+
+    function drawCabPickupRoute(geojson){
+        routeCabPickupLayer.clearLayers();
+        routeCabPickupLayer.addData({ type: 'Feature', geometry: geojson.geometry, properties: {} });
+        fitToAllRoutes();
+    }
+
+    function drawPickupDropRoute(geojson){
+        routePickupDropLayer.clearLayers();
+        routePickupDropLayer.addData({ type: 'Feature', geometry: geojson.geometry, properties: {} });
+        fitToAllRoutes();
+    }
+
+    function fitToAllRoutes(){
+        const layers = [];
+        routeCabPickupLayer.eachLayer(l => layers.push(l));
+        routePickupDropLayer.eachLayer(l => layers.push(l));
+        if (layers.length === 0) return;
+        let bounds = null;
+        layers.forEach(l => {
+            const b = l.getBounds();
+            bounds = bounds ? bounds.extend(b) : b;
+        });
+        if (bounds) map.fitBounds(bounds.pad(0.2));
+    }
+
+    function animateAlong(geojson, startAt){
+        stopAnim();
+        const coords = geojson.geometry.coordinates.map(([x,y]) => [y,x]);
+        animCoords = coords;
+        animIdx = 0;
+        animMarker = L.circleMarker(startAt, { radius: 6, color: '#111', weight: 2, fillColor: '#f59e0b', fillOpacity: 1 }).addTo(map);
+        const speedMps = 18; // ~65 km/h
+        function step(){
+            if (animIdx >= animCoords.length - 1) return;
+            const a = animCoords[animIdx];
+            const b = animCoords[animIdx+1];
+            const segDist = map.distance(a, b);
+            const dt = 16 / 1000;
+            const move = speedMps * dt;
+            const t = Math.min(1, move / Math.max(1, segDist));
+            const lat = a[0] + (b[0] - a[0]) * t;
+            const lng = a[1] + (b[1] - a[1]) * t;
+            animMarker.setLatLng([lat, lng]);
+            if (t >= 1) animIdx++;
+            animHandle = requestAnimationFrame(step);
+        }
+        animHandle = requestAnimationFrame(step);
+    }
+
 })();
