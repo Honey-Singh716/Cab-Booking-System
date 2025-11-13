@@ -15,6 +15,8 @@ struct Route {
     Route() : totalDistance(0.0), estimatedDuration(0.0), estimatedFare(0.0), isValid(false) {}
 };
 
+
+
 struct TripPhase {
     enum Type { IDLE, CAB_TO_PICKUP, PICKUP_TO_DROP, COMPLETED };
     Type type;
