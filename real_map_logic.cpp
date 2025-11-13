@@ -210,3 +210,59 @@ public:
         return string(buffer);
     }
 };
+#ifdef REAL_MAP_DEMO
+// Demo usage
+int main() {
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
+    
+    RealMapCabSystem system;
+    
+    // Demo: New Delhi coordinates
+    Location delhi(28.6139, 77.2090);
+    
+    cout << "=== Real Map Cab System Demo ===" << endl;
+    
+    // Spawn cabs around Delhi
+    system.spawnCabsAround(delhi, 5, 2000); // 5 cabs within 2km radius
+    cout << "Spawned " << system.getCabs().size() << " cabs around Delhi" << endl;
+    
+    // Show cab positions
+    for (const auto& cab : system.getCabs()) {
+        cout << "Cab " << cab.id << ": (" << cab.position.latitude << ", " 
+             << cab.position.longitude << ")" << endl;
+    }
+    
+    // Set pickup location (near Connaught Place)
+    Location pickup(28.6315, 77.2167);
+    cout << "\nSetting pickup at Connaught Place..." << endl;
+    
+    if (system.startTrip(pickup)) {
+        TripPhase trip = system.getCurrentTrip();
+        cout << "Trip started!" << endl;
+        cout << "Assigned cab: " << trip.assignedCabId << endl;
+        cout << "Distance to pickup: " << system.formatDistance(trip.currentRoute.totalDistance) << endl;
+        cout << "Estimated time: " << system.formatDuration(trip.currentRoute.estimatedDuration) << endl;
+        
+        // Add drop location (near India Gate)
+        Location drop(28.6129, 77.2295);
+        cout << "\nAdding drop location at India Gate..." << endl;
+        
+        if (system.addDropLocation(drop)) {
+            trip = system.getCurrentTrip();
+            cout << "Drop location added!" << endl;
+            cout << "Distance pickup to drop: " << system.formatDistance(trip.currentRoute.totalDistance) << endl;
+            cout << "Estimated time: " << system.formatDuration(trip.currentRoute.estimatedDuration) << endl;
+        }
+        
+        // Complete trip
+        cout << "\nCompleting trip..." << endl;
+        system.completeTrip();
+        cout << "Trip completed. Available cabs: " << system.getAvailableCabsCount() << endl;
+    } else {
+        cout << "Failed to start trip - no available cabs" << endl;
+    }
+    
+    return 0;
+}
+#endif
