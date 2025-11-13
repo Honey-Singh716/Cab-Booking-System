@@ -212,13 +212,20 @@
     
     // Function to initialize cabs
     const initializeCabs = async () => {
-        const count = Math.max(1, Math.min(30, parseInt(document.getElementById('lfCabCount').value,10)||8));
-        const radius = Math.max(100, Math.min(5000, parseInt(document.getElementById('lfRadius').value,10)||1200));
-        await spawnNearbyCabs(defaultLocation, count, radius);
-        
-        // Showing available cabs info
-        const availableCabs = document.getElementById('availableCabs');
-        availableCabs.textContent = Click on map to set pickup location. ${count} cabs available.;
+        try {
+            const count = Math.max(1, Math.min(30, parseInt(document.getElementById('lfCabCount').value, 10) || 8));
+            const radius = Math.max(100, Math.min(5000, parseInt(document.getElementById('lfRadius').value, 10) || 1200));
+            await spawnNearbyCabs(defaultLocation, count, radius);
+            
+            // Showing available cabs info
+            const availableCabs = document.getElementById('availableCabs');
+            availableCabs.textContent = `Click on map to set pickup location. ${count} cabs available.`;
+        } catch (error) {
+            console.error('Error initializing cabs:', error);
+            const availableCabs = document.getElementById('availableCabs');
+            availableCabs.textContent = 'Error loading cabs. Please refresh the page.';
+            availableCabs.style.color = 'red';
+        }
     };
     
     // Initializing cabs when the page loads
@@ -272,7 +279,7 @@
                     eta,
                     fare: fare
                 });
-                setInfo(Nearest cab: ${formatKm(dKm)}, ETA ${formatMin(mins)}. Estimated fare: ₹${fare}. Click drop (optional).);
+                setInfo(`Nearest cab: ${formatKm(dKm)}, ETA ${formatMin(mins)}. Estimated fare: ₹${fare}. Click drop (optional).`);
             } catch (err){
                 console.error(err);
                 setInfo('Routing service error. Try again.');
@@ -299,7 +306,7 @@
                     eta: addMinsToNow(durMin),
                     fare: fare
                 });
-                setInfo(Cab is on the way to drop location. Estimated fare: ₹${fare});
+                setInfo(`Cab is on the way to drop location. Estimated fare: ₹${fare}`);
             } catch (err){
                 console.error(err);
                 setInfo('Routing service error.');
@@ -317,8 +324,15 @@
                 animateAlong(best.route, best.cab);
                 const dKm = (best.distance/1000);
                 const mins = Math.max(1, Math.ceil(best.duration/60));
-                setTrip({ status: 'En route to pickup', phase: 'Cab → Pickup', distance: formatKm(dKm), duration: formatMin(mins), now: nowString(), eta: addMinsToNow(mins) });
-                setInfo(Nearest cab: ${formatKm(dKm)}, ETA ${formatMin(mins)}. Click drop (optional).);
+                setTrip({ 
+                    status: 'En route to pickup', 
+                    phase: 'Cab → Pickup', 
+                    distance: formatKm(dKm), 
+                    duration: formatMin(mins), 
+                    now: nowString(), 
+                    eta: addMinsToNow(mins) 
+                });
+                setInfo(`Nearest cab: ${formatKm(dKm)}, ETA ${formatMin(mins)}. Click drop (optional).`);
             } catch (err){
                 console.error(err);
                 setInfo('Routing service error. Try again.');
@@ -332,8 +346,8 @@
 
 
     // Trip card helpers
-    function formatKm(km){ return ${km.toFixed(2)} km; }
-    function formatMin(min){ return ${min.toFixed(2)} min; }
+    function formatKm(km){ return `${km.toFixed(2)} km`; }
+    function formatMin(min){ return `${min.toFixed(2)} min`; }
     function nowString(){
         const d = new Date();
         return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -350,20 +364,20 @@
         const secs = Math.floor(seconds % 60);
         
         if (hours > 0) {
-            return ${hours}h ${minutes}m;
+            return `${hours}h ${minutes}m`;
         } else if (minutes > 0) {
-            return ${minutes}m ${secs}s;
+            return `${minutes}m ${secs}s`;
         } else {
-            return ${secs}s;
+            return `${secs}s`;
         }
     }
     
     // Formatting distance in meters to km or m depending on value
     function formatDistance(meters) {
         if (meters >= 1000) {
-            return ${(meters / 1000).toFixed(1)} km;
+            return `${(meters / 1000).toFixed(1)} km`;
         } else {
-            return ${Math.round(meters)} m;
+            return    `${Math.round(meters)} m`;
         }
     }
     
@@ -391,20 +405,33 @@
         return Math.round(totalFare); // Returning rounded value to nearest rupee
     }
     
-    function setTrip({ status, phase, distance, duration, now, eta, fare }) {
-        if (status != null) document.getElementById('tdStatus').textContent = status;
-        if (phase != null) document.getElementById('tdPhase').textContent = phase;
-        if (distance != null) document.getElementById('tdDistance').textContent = distance;
-        if (duration != null) document.getElementById('tdDuration').textContent = duration;
-        if (now != null) document.getElementById('tdNow').textContent = now;
-        if (eta != null) document.getElementById('tdEta').textContent = eta;
+    // function setTrip({ status, phase, distance, duration, now, eta, fare }) {
+    //     if (status != null) document.getElementById('tdStatus').textContent = status;
+    //     if (phase != null) document.getElementById('tdPhase').textContent = phase;
+    //     if (distance != null) document.getElementById('tdDistance').textContent = distance;
+    //     if (duration != null) document.getElementById('tdDuration').textContent = duration;
+    //     if (now != null) document.getElementById('tdNow').textContent = now;
+    //     if (eta != null) document.getElementById('tdEta').textContent = eta;
         
-        // Only updating fare if it's provided
-        if (fare !== undefined) {
-            document.getElementById('tdFare').textContent = ₹${fare};
-        }
+    //     // Only updating fare if it's provided
+    //     if (fare !== undefined) {
+    //         document.getElementById('tdFare').textContent = ₹${fare};
+    //     }
+    // }
+    function setTrip({ status, phase, distance, duration, now, eta, fare }) {
+    if (status != null) document.getElementById('tdStatus').textContent = status;
+    if (phase != null) document.getElementById('tdPhase').textContent = phase;
+    if (distance != null) document.getElementById('tdDistance').textContent = distance;
+    if (duration != null) document.getElementById('tdDuration').textContent = duration;
+    if (now != null) document.getElementById('tdNow').textContent = now;
+    if (eta != null) document.getElementById('tdEta').textContent = eta;
+    
+    // Only updating fare if it's provided
+    if (fare !== undefined) {
+        document.getElementById('tdFare').textContent = `₹${fare}`;
     }
+}
 
-    // initial sidebar values
-    setTrip({ status: 'Idle', phase: '–', distance: '–', duration: '–', now: nowString(), eta: '–' });
+// initial sidebar values
+setTrip({ status: 'Idle', phase: '–', distance: '–', duration: '–', now: nowString(), eta: '–' });
 })();
