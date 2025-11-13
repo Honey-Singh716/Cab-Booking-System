@@ -76,4 +76,67 @@
         return res.json();
     }
 
+
+    async function fetchMainRoadPolylines(center, radiusMeters){
+        const [lat, lon] = center;
+        const query = `[
+            out:json
+        ];
+        (
+          way["highway"~"^(motorway|trunk|primary|secondary|tertiary)$"](around:${Math.round(radiusMeters)},${lat},${lon});
+        );
+        out geom;`;
+        const res = await fetch(OVERPASS, { method: 'POST', body: query, headers: { 'Content-Type': 'text/plain' } });
+        if (!res.ok) throw new Error('Overpass request failed');
+        const data = await res.json();
+        // Returning array of polylines, each polyline is [[latitude,longitude], ...]
+        return (data.elements || []).filter(e => e.type === 'way' && Array.isArray(e.geometry)).map(e => e.geometry.map(p => [p.lat, p.lon]));
+    }
+
+    function samplePointsFromPolylines(polylines, count){
+        const points = [];
+        if (!polylines.length) return points;
+        for (let i = 0; i < count; i++) {
+            const way = polylines[Math.floor(Math.random() * polylines.length)];
+            if (way.length < 2) { i--; continue; }
+            const idx = Math.floor(Math.random() * (way.length - 1));
+            const a = way[idx];
+            const b = way[idx + 1];
+            const t = Math.random();
+            const lat = a[0] + (b[0] - a[0]) * t;
+            const lng = a[1] + (b[1] - a[1]) * t;
+            points.push([lat, lng]);
+        }
+        return points;
+    }
+
+    async function spawnNearbyCabs(center, count, radiusMeters){
+        try {
+            const polylines = await fetchMainRoadPolylines(center, radiusMeters);
+            const pts = samplePointsFromPolylines(polylines, count);
+            if (pts.length) {
+                cabCoords = pts;
+            } else {
+                throw new Error('No main roads found');
+            }
+        } catch (e) {
+            console.warn('Falling back to random spawn:', e.message || e);
+            // Fallback: random around
+            const lat = center[0];
+            const lng = center[1];
+            const metersPerDegLat = 111320;
+            const metersPerDegLng = Math.cos(lat * Math.PI/180) * 111320;
+            cabCoords = [];
+            for (let i=0;i<count;i++){
+                const r = Math.random() * radiusMeters;
+                const theta = Math.random() * Math.PI * 2;
+                const dx = (r * Math.cos(theta)) / metersPerDegLng;
+                const dy = (r * Math.sin(theta)) / metersPerDegLat;
+                cabCoords.push([lat + dy, lng + dx]);
+            }
+        }
+        cabMarkers.forEach(m => map.removeLayer(m));
+        cabMarkers = cabCoords.map(c => L.marker(c, { icon: iconHtml('marker-cab') }).addTo(map));
+    }
+
 })();
