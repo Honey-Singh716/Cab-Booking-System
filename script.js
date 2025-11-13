@@ -206,5 +206,124 @@
         }
         animHandle = requestAnimationFrame(step);
     }
+    // Setting up default map view to New Delhi
+    const defaultLocation = [28.6139, 77.2090];
+    map.setView(defaultLocation, 14);
+    
+    // Function to initialize cabs
+    const initializeCabs = async () => {
+        const count = Math.max(1, Math.min(30, parseInt(document.getElementById('lfCabCount').value,10)||8));
+        const radius = Math.max(100, Math.min(5000, parseInt(document.getElementById('lfRadius').value,10)||1200));
+        await spawnNearbyCabs(defaultLocation, count, radius);
+        
+        // Showing available cabs info
+        const availableCabs = document.getElementById('availableCabs');
+        availableCabs.textContent = Click on map to set pickup location. ${count} cabs available.;
+    };
+    
+    // Initializing cabs when the page loads
+    initializeCabs().catch(console.error);
+    
+    map.on('click', async (e) => {
+        // Not doing anything if the click was on a cab marker
+        if (e.originalEvent && e.originalEvent.target && 
+            (e.originalEvent.target.classList.contains('cab-marker') || 
+             e.originalEvent.target.closest('.cab-marker'))) {
+            return;
+        }
+
+        const dropEnabled = document.getElementById('lfDropToggle').checked;
+        const count = Math.max(1, Math.min(30, parseInt(document.getElementById('lfCabCount').value,10)||8));
+        const radius = Math.max(100, Math.min(5000, parseInt(document.getElementById('lfRadius').value,10)||1200));
+
+        if (!pickupMarker) {
+            // Clear up existing markers and routes first, but keep pickup if it exists
+            resetAll();
+            // Setting new pickup marker
+            pickupMarker = L.marker(e.latlng, { 
+                icon: iconHtml('marker-pickup'),
+                draggable: true
+            }).addTo(map);
+            
+            // Updating pickup location if marker is dragged
+            pickupMarker.on('dragend', function() {
+                const newLatLng = pickupMarker.getLatLng();
+                resetAll(true);
+                findNearestCabAndRoute([newLatLng.lat, newLatLng.lng]);
+            });
+            
+            await spawnNearbyCabs([e.latlng.lat, e.latlng.lng], count, radius);
+            setInfo('Finding nearest cab via roads...');
+            try {
+                const best = await findNearestCabAndRoute([e.latlng.lat, e.latlng.lng]);
+                if (!best) { setInfo('No reachable cab.'); return; }
+                drawCabPickupRoute(best.route);
+                animateAlong(best.route, best.cab);
+                const dKm = (best.distance/1000);
+                const mins = Math.max(1, Math.ceil(best.duration/60));
+                const eta = addMinsToNow(mins);
+                const fare = calculateFare(dKm, mins);
+                setTrip({ 
+                    status: 'En route to pickup', 
+                    phase: 'Cab → Pickup', 
+                    distance: formatKm(dKm), 
+                    duration: formatMin(mins), 
+                    now: nowString(), 
+                    eta,
+                    fare: fare
+                });
+                setInfo(Nearest cab: ${formatKm(dKm)}, ETA ${formatMin(mins)}. Estimated fare: ₹${fare}. Click drop (optional).);
+            } catch (err){
+                console.error(err);
+                setInfo('Routing service error. Try again.');
+            }
+        } else if (dropEnabled && !dropMarker) {
+            dropMarker = L.marker(e.latlng, { icon: iconHtml('marker-drop') }).addTo(map);
+            // Route from pickup to drop
+            const pick = [pickupMarker.getLatLng().lat, pickupMarker.getLatLng().lng];
+            const drop = [e.latlng.lat, e.latlng.lng];
+            setInfo('Routing to drop...');
+            try {
+                const r = await osrmRoute(pick, drop);
+                drawPickupDropRoute(r.routes[0]);
+                animateAlong(r.routes[0], pick);
+                const dKm = (r.routes[0].distance/1000);
+                const durMin = (r.routes[0].duration/60);
+                const fare = calculateFare(dKm, durMin);
+                setTrip({ 
+                    status: 'En route to drop', 
+                    phase: 'Pickup → Drop', 
+                    distance: formatKm(dKm), 
+                    duration: formatMin(durMin), 
+                    now: nowString(), 
+                    eta: addMinsToNow(durMin),
+                    fare: fare
+                });
+                setInfo(Cab is on the way to drop location. Estimated fare: ₹${fare});
+            } catch (err){
+                console.error(err);
+                setInfo('Routing service error.');
+            }
+        } else {
+            // Reset flow
+            resetAll();
+            pickupMarker = L.marker(e.latlng, { icon: iconHtml('marker-pickup') }).addTo(map);
+            await spawnNearbyCabs([e.latlng.lat, e.latlng.lng], count, radius);
+            setInfo('Finding nearest cab via roads...');
+            try {
+                const best = await findNearestCabAndRoute([e.latlng.lat, e.latlng.lng]);
+                if (!best) { setInfo('No reachable cab.'); return; }
+                drawCabPickupRoute(best.route);
+                animateAlong(best.route, best.cab);
+                const dKm = (best.distance/1000);
+                const mins = Math.max(1, Math.ceil(best.duration/60));
+                setTrip({ status: 'En route to pickup', phase: 'Cab → Pickup', distance: formatKm(dKm), duration: formatMin(mins), now: nowString(), eta: addMinsToNow(mins) });
+                setInfo(Nearest cab: ${formatKm(dKm)}, ETA ${formatMin(mins)}. Click drop (optional).);
+            } catch (err){
+                console.error(err);
+                setInfo('Routing service error. Try again.');
+            }
+        }
+    });
 
 })();
