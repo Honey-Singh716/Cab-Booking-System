@@ -326,4 +326,85 @@
         }
     });
 
+
+    
+    document.getElementById('lfReset').addEventListener('click', resetAll);
+
+
+    // Trip card helpers
+    function formatKm(km){ return ${km.toFixed(2)} km; }
+    function formatMin(min){ return ${min.toFixed(2)} min; }
+    function nowString(){
+        const d = new Date();
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    function addMinsToNow(mins){
+        const d = new Date(Date.now() + mins*60*1000);
+        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    // Formatting duration in seconds to HH:MM:SS
+    function formatDuration(seconds) {
+        const hours = Math.floor(seconds / 3600);
+        const minutes = Math.floor((seconds % 3600) / 60);
+        const secs = Math.floor(seconds % 60);
+        
+        if (hours > 0) {
+            return ${hours}h ${minutes}m;
+        } else if (minutes > 0) {
+            return ${minutes}m ${secs}s;
+        } else {
+            return ${secs}s;
+        }
+    }
+    
+    // Formatting distance in meters to km or m depending on value
+    function formatDistance(meters) {
+        if (meters >= 1000) {
+            return ${(meters / 1000).toFixed(1)} km;
+        } else {
+            return ${Math.round(meters)} m;
+        }
+    }
+    
+    // Format currency
+    function formatCurrency(amount) {
+        return new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD'
+        }).format(amount);
+    }
+    // Calculating fare based on distance in km and duration in minutes (in Indian Rupees)
+    function calculateFare(distanceKm, durationMinutes) {
+        const baseFare = 30;          // Base fare in INR
+        const perKmRate = 12;         // Per kilometer rate in INR
+        const perMinuteRate = 2;      // Per minute rate in INR
+        const minimumFare = 50;       // Minimum fare in INR
+        
+        // Calculating fare components
+        const distanceFare = distanceKm * perKmRate;
+        const timeFare = durationMinutes * perMinuteRate;
+        
+        // Calculating total fare, ensuring it's not below minimum
+        const totalFare = Math.max(baseFare + distanceFare + timeFare, minimumFare);
+        
+        return Math.round(totalFare); // Returning rounded value to nearest rupee
+    }
+    
+    function setTrip({ status, phase, distance, duration, now, eta, fare }) {
+        if (status != null) document.getElementById('tdStatus').textContent = status;
+        if (phase != null) document.getElementById('tdPhase').textContent = phase;
+        if (distance != null) document.getElementById('tdDistance').textContent = distance;
+        if (duration != null) document.getElementById('tdDuration').textContent = duration;
+        if (now != null) document.getElementById('tdNow').textContent = now;
+        if (eta != null) document.getElementById('tdEta').textContent = eta;
+        
+        // Only updating fare if it's provided
+        if (fare !== undefined) {
+            document.getElementById('tdFare').textContent = ₹${fare};
+        }
+    }
+
+    // initial sidebar values
+    setTrip({ status: 'Idle', phase: '–', distance: '–', duration: '–', now: nowString(), eta: '–' });
 })();
