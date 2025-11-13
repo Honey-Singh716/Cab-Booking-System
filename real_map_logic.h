@@ -2,10 +2,9 @@
 #define REAL_MAP_LOGIC_H
 
 #include <vector>
+#include <string>
 #include "cab_management.h"
-
-
-class CabManager;
+using namespace std;
 
 struct Route {
     std::vector<Location> waypoints;
@@ -16,10 +15,6 @@ struct Route {
     
     Route();
 };
-
-class RealMapCabSystem {
-private:
-    CabManager cabManager;
     
     struct TripPhase {
         enum Type { IDLE, CAB_TO_PICKUP, PICKUP_TO_DROP, COMPLETED };
@@ -30,30 +25,43 @@ private:
         Route currentRoute;
         
         TripPhase();
-    } currentTrip;
-    
-    double averageSpeed; 
-    
+};
+
+
+class RealMapCabSystem {
+private:
+    CabManager cabManager;
+    TripPhase currentTrip;
+    double averageSpeed; // meters per second
+
+public:
+    explicit RealMapCabSystem(double speed = 18.0);
+
+    // Fleet management
+    void addCab(int id, Location position);
+    void spawnCabsAround(Location center, int count, double radiusMeters);
    
     double calculateDistance(Location a, Location b);
     int findNearestCab(Location pickup);
     double calculateFare(double distanceKm, double durationMinutes);
     Route estimateRoute(Location from, Location to);
-    
-public:
-    RealMapCabSystem();
-    
+
+
     // Core functionality
-    bool addCab(int id, Location position, bool available = true);
     bool startTrip(Location pickup);
     bool addDropLocation(Location drop);
     void completeTrip();
     
-   
+    TripPhase getCurrentTrip() const;
+    vector<Cab> getCabs() const;
     int getAvailableCabsCount() const;
-    
-    
-    void demo();
+
+    int getAvailableCabsCount() const;
+
+    void reset();
+    string formatDuration(double seconds);
+    string formatDistance(double meters);
+    string formatCurrency(double amount);
 };
 
 #endif // REAL_MAP_LOGIC_H
