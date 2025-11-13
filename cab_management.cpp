@@ -1,4 +1,5 @@
 #include "cab_management.h"
+#include <iostream>
 
 #ifdef CAB_MANAGEMENT_DEMO
 int main() {
